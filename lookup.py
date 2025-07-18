@@ -1,12 +1,12 @@
 import requests
 import hashlib
+import itertools
+import string
 
 API_KEY = "44beab5b2f77f9de"
 API_EMAIL = "barryjen@acceleratedschoolsop.org"
 
-# Global cache: {algorithm: {hashed_password: plain_password}}
 cache = {}
-
 
 def load_dictionary_cache(algorithm: str, dict_file="wordlists/rockyou.txt"):
     global cache
@@ -45,7 +45,6 @@ def dictionary_attack(hash_value: str, algorithm: str, dict_file="rockyou.txt") 
 
 
 def lookup_hash(hash_value: str) -> str | None:
-    # Determine hash type by length
     hash_len = len(hash_value)
     if hash_len == 32:
         hash_type = 'md5'
@@ -76,5 +75,30 @@ def lookup_hash(hash_value: str) -> str | None:
     except Exception as e:
         print(f"⚠️ API request error: {e}")
 
-    # No API result; caller can fallback to dictionary_attack explicitly
+    return None
+
+
+def brute_force_attack(hash_value: str, algorithm: str, max_length: int = 4) -> str | None:
+    print(f"⏳ Starting brute-force attack with max length = {max_length}...")
+
+    charset = string.ascii_lowercase  # Extend if needed
+
+    def get_hash(s):
+        s = s.encode()
+        if algorithm == 'md5':
+            return hashlib.md5(s).hexdigest()
+        elif algorithm == 'sha1':
+            return hashlib.sha1(s).hexdigest()
+        elif algorithm == 'sha256':
+            return hashlib.sha256(s).hexdigest()
+        elif algorithm == 'sha512':
+            return hashlib.sha512(s).hexdigest()
+        return None
+
+    for length in range(1, max_length + 1):
+        for attempt in itertools.product(charset, repeat=length):
+            guess = ''.join(attempt)
+            if get_hash(guess) == hash_value:
+                return guess
+
     return None
