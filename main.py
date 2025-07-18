@@ -1,7 +1,7 @@
 from hash_utils import hash_string, verify_bcrypt
 from lookup import dictionary_attack, lookup_hash
 
-HASHES_FILE = "saved_hashes.txt"
+HASHES_FILE = "hashes.txt"
 
 
 def save_hash(text, algorithm, hashed_value):
