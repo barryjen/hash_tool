@@ -1,5 +1,5 @@
 from hash_utils import hash_string, verify_bcrypt
-from lookup import lookup_hash
+from lookup import dictionary_attack, lookup_hash
 
 
 def generate_hash():
@@ -47,12 +47,23 @@ def verify_bcrypt_hash():
 
 def lookup_hash_cli():
     hash_value = input("Enter the hash to lookup: ")
+    print("Supported algorithms: md5, sha1, sha256, sha512")
+    algorithm = input("Enter hash algorithm: ").lower()
+
+    # Try API lookup first
     result = lookup_hash(hash_value)
+    if result:
+        print(f"✅ Found plaintext via API: {result}")
+        return
+
+    # If API lookup fails, do dictionary attack using given algorithm
+    print("🔎 Trying local dictionary attack fallback...")
+    result = dictionary_attack(hash_value, algorithm)
 
     if result:
-        print(f"✅ Found plaintext: {result}")
+        print(f"✅ Found plaintext via dictionary attack: {result}")
     else:
-        print("❌ Plaintext not found in database.")
+        print("❌ Plaintext not found.")
 
 
 def main():

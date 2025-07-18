@@ -4,34 +4,48 @@ import hashlib
 API_KEY = "44beab5b2f77f9de"
 API_EMAIL = "barryjen@acceleratedschoolsop.org"
 
+# Global cache: {algorithm: {hashed_password: plain_password}}
+cache = {}
 
-def dictionary_attack(hash_value: str, algorithm: str, dict_file="rockyou.txt") -> str | None:
+
+def load_dictionary_cache(algorithm: str, dict_file="rockyou.txt"):
+    global cache
+    if algorithm in cache:
+        return cache[algorithm]
+
     try:
-        with open(dict_file, 'r', encoding='utf-8') as f:
+        with open(dict_file, 'r', encoding='utf-8', errors='ignore') as f:
             passwords = [line.strip() for line in f if line.strip()]
     except FileNotFoundError:
         print(f"⚠️ Dictionary file '{dict_file}' not found.")
-        return None
+        return {}
 
+    hash_map = {}
     for pwd in passwords:
         if algorithm == 'md5':
-            hashed = hashlib.md5(pwd.encode()).hexdigest()
+            h = hashlib.md5(pwd.encode()).hexdigest()
         elif algorithm == 'sha1':
-            hashed = hashlib.sha1(pwd.encode()).hexdigest()
+            h = hashlib.sha1(pwd.encode()).hexdigest()
         elif algorithm == 'sha256':
-            hashed = hashlib.sha256(pwd.encode()).hexdigest()
+            h = hashlib.sha256(pwd.encode()).hexdigest()
         elif algorithm == 'sha512':
-            hashed = hashlib.sha512(pwd.encode()).hexdigest()
+            h = hashlib.sha512(pwd.encode()).hexdigest()
         else:
             continue
 
-        if hashed == hash_value.lower():
-            return pwd
+        hash_map[h] = pwd
 
-    return None
+    cache[algorithm] = hash_map
+    return hash_map
+
+
+def dictionary_attack(hash_value: str, algorithm: str, dict_file="rockyou.txt") -> str | None:
+    hash_map = load_dictionary_cache(algorithm, dict_file)
+    return hash_map.get(hash_value.lower())
 
 
 def lookup_hash(hash_value: str) -> str | None:
+    # Determine hash type by length
     hash_len = len(hash_value)
     if hash_len == 32:
         hash_type = 'md5'
@@ -40,7 +54,7 @@ def lookup_hash(hash_value: str) -> str | None:
     elif hash_len == 64:
         hash_type = 'sha256'
     else:
-        print("⚠️ Unsupported hash length for lookup.")
+        print("⚠️ Unsupported hash length for API lookup.")
         return None
 
     url = "https://md5decrypt.net/Api/api.php"
@@ -62,5 +76,5 @@ def lookup_hash(hash_value: str) -> str | None:
     except Exception as e:
         print(f"⚠️ API request error: {e}")
 
-    print("🔎 Trying local dictionary attack fallback...")
-    return dictionary_attack(hash_value, hash_type)
+    # No API result; caller can fallback to dictionary_attack explicitly
+    return None
