@@ -1,6 +1,29 @@
 from hash_utils import hash_string, verify_bcrypt
 from lookup import dictionary_attack, lookup_hash
 
+HASHES_FILE = "saved_hashes.txt"
+
+
+def save_hash(text, algorithm, hashed_value):
+    with open(HASHES_FILE, "a", encoding="utf-8") as f:
+        f.write(f"{algorithm}:{text}:{hashed_value}\n")
+    print(f"✅ Hash saved to {HASHES_FILE}")
+
+
+def load_hashes():
+    try:
+        with open(HASHES_FILE, "r", encoding="utf-8") as f:
+            lines = [line.strip() for line in f if line.strip()]
+            if not lines:
+                print("⚠️ No hashes saved yet.")
+                return
+            print("Saved hashes:")
+            for i, line in enumerate(lines, 1):
+                algo, plain, hashed = line.split(":", 2)
+                print(f"{i}. [{algo}] {plain} -> {hashed}")
+    except FileNotFoundError:
+        print("⚠️ No saved hashes file found.")
+
 
 def generate_hash():
     text = input("Enter the text to hash: ")
@@ -31,6 +54,9 @@ def generate_hash():
     try:
         hashed = hash_string(text, algorithm)
         print(f"\n✅ Hashed result using {algorithm.upper()}:\n{hashed}")
+        save = input("Do you want to save this hash? (y/n): ").lower()
+        if save == "y":
+            save_hash(text, algorithm, hashed)
     except Exception as e:
         print(f"⚠️ Error: {e}")
 
@@ -73,8 +99,9 @@ def main():
     print("1. Generate Hash")
     print("2. Verify bcrypt Hash")
     print("3. Lookup Hash")
+    print("4. View Saved Hashes")
 
-    action = input("Choose an action [1-3]: ")
+    action = input("Choose an action [1-4]: ")
 
     if action == "1":
         generate_hash()
@@ -82,6 +109,8 @@ def main():
         verify_bcrypt_hash()
     elif action == "3":
         lookup_hash_cli()
+    elif action == "4":
+        load_hashes()
     else:
         print("❌ Invalid option.")
 
