@@ -1,14 +1,16 @@
-import requests
 import hashlib
 import itertools
 import string
+import threading
+import requests
+from queue import Queue
 
 API_KEY = "44beab5b2f77f9de"
 API_EMAIL = "barryjen@acceleratedschoolsop.org"
 
 cache = {}
 
-def load_dictionary_cache(algorithm: str, dict_file="wordlists/rockyou.txt"):
+def load_dictionary_cache(algorithm: str, dict_file="rockyou.txt"):
     global cache
     if algorithm in cache:
         return cache[algorithm]
@@ -32,7 +34,6 @@ def load_dictionary_cache(algorithm: str, dict_file="wordlists/rockyou.txt"):
             h = hashlib.sha512(pwd.encode()).hexdigest()
         else:
             continue
-
         hash_map[h] = pwd
 
     cache[algorithm] = hash_map
@@ -70,35 +71,49 @@ def lookup_hash(hash_value: str) -> str | None:
             plaintext = response.text.strip()
             if plaintext and plaintext != 'CODE DOES NOT EXIST':
                 return plaintext
-        else:
-            print(f"⚠️ API request failed with status {response.status_code}")
     except Exception as e:
-        print(f"⚠️ API request error: {e}")
-
+        print(f"⚠️ API error: {e}")
     return None
 
 
-def brute_force_attack(hash_value: str, algorithm: str, max_length: int = 4) -> str | None:
-    print(f"⏳ Starting brute-force attack with max length = {max_length}...")
+def threaded_brute_force_attack(hash_value: str, algorithm: str, max_length: int = 4, num_threads: int = 6) -> str | None:
+    charset = string.ascii_lowercase
+    found = threading.Event()
+    result_holder = {"result": None}
+    task_queue = Queue()
 
-    charset = string.ascii_lowercase  # Extend if needed
-
-    def get_hash(s):
-        s = s.encode()
+    def hash_match(guess: str) -> bool:
+        s = guess.encode()
         if algorithm == 'md5':
-            return hashlib.md5(s).hexdigest()
+            return hashlib.md5(s).hexdigest() == hash_value
         elif algorithm == 'sha1':
-            return hashlib.sha1(s).hexdigest()
+            return hashlib.sha1(s).hexdigest() == hash_value
         elif algorithm == 'sha256':
-            return hashlib.sha256(s).hexdigest()
+            return hashlib.sha256(s).hexdigest() == hash_value
         elif algorithm == 'sha512':
-            return hashlib.sha512(s).hexdigest()
-        return None
+            return hashlib.sha512(s).hexdigest() == hash_value
+        return False
+
+    def worker():
+        while not task_queue.empty() and not found.is_set():
+            guess = task_queue.get()
+            if hash_match(guess):
+                found.set()
+                result_holder["result"] = guess
+            task_queue.task_done()
+
+    print(f"⏳ Starting brute-force with threads={num_threads}, max_length={max_length}...")
 
     for length in range(1, max_length + 1):
-        for attempt in itertools.product(charset, repeat=length):
-            guess = ''.join(attempt)
-            if get_hash(guess) == hash_value:
-                return guess
+        for combo in itertools.product(charset, repeat=length):
+            task_queue.put(''.join(combo))
 
-    return None
+    threads = []
+    for _ in range(num_threads):
+        t = threading.Thread(target=worker, daemon=True)
+        t.start()
+        threads.append(t)
+
+    task_queue.join()
+
+    return result_holder["result"]
