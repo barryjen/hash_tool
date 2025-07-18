@@ -1,14 +1,12 @@
 from hash_utils import hash_string, verify_bcrypt
-from lookup import dictionary_attack, lookup_hash
+from lookup import dictionary_attack, lookup_hash, brute_force_attack
 
 HASHES_FILE = "hashes.txt"
-
 
 def save_hash(text, algorithm, hashed_value):
     with open(HASHES_FILE, "a", encoding="utf-8") as f:
         f.write(f"{algorithm}:{text}:{hashed_value}\n")
     print(f"✅ Hash saved to {HASHES_FILE}")
-
 
 def load_hashes():
     try:
@@ -23,7 +21,6 @@ def load_hashes():
                 print(f"{i}. [{algo}] {plain} -> {hashed}")
     except FileNotFoundError:
         print("⚠️ No saved hashes file found.")
-
 
 def generate_hash():
     text = input("Enter the text to hash: ")
@@ -60,7 +57,6 @@ def generate_hash():
     except Exception as e:
         print(f"⚠️ Error: {e}")
 
-
 def verify_bcrypt_hash():
     plain = input("Enter the original text (e.g. password): ")
     hashed = input("Enter the bcrypt hash to verify: ")
@@ -70,19 +66,16 @@ def verify_bcrypt_hash():
     else:
         print("❌ No match. Incorrect password or invalid hash.")
 
-
 def lookup_hash_cli():
     hash_value = input("Enter the hash to lookup: ")
     print("Supported algorithms: md5, sha1, sha256, sha512")
     algorithm = input("Enter hash algorithm: ").lower()
 
-    # Try API lookup first
     result = lookup_hash(hash_value)
     if result:
         print(f"✅ Found plaintext via API: {result}")
         return
 
-    # If API lookup fails, do dictionary attack using given algorithm
     print("🔎 Trying local dictionary attack fallback...")
     result = dictionary_attack(hash_value, algorithm)
 
@@ -91,6 +84,20 @@ def lookup_hash_cli():
     else:
         print("❌ Plaintext not found.")
 
+def brute_force_cli():
+    hash_value = input("Enter the hash to brute-force: ")
+    algorithm = input("Enter hash algorithm (md5, sha1, sha256, sha512): ").lower()
+    try:
+        max_len = int(input("Max password length to try (e.g. 4): "))
+    except ValueError:
+        print("⚠️ Invalid number.")
+        return
+
+    result = brute_force_attack(hash_value, algorithm, max_length=max_len)
+    if result:
+        print(f"✅ Match found: {result}")
+    else:
+        print("❌ No match found within constraints.")
 
 def main():
     print("🔐 Hash Tool")
@@ -100,8 +107,9 @@ def main():
     print("2. Verify bcrypt Hash")
     print("3. Lookup Hash")
     print("4. View Saved Hashes")
+    print("5. Brute-force Hash")
 
-    action = input("Choose an action [1-4]: ")
+    action = input("Choose an action [1-5]: ")
 
     if action == "1":
         generate_hash()
@@ -111,9 +119,10 @@ def main():
         lookup_hash_cli()
     elif action == "4":
         load_hashes()
+    elif action == "5":
+        brute_force_cli()
     else:
         print("❌ Invalid option.")
-
 
 if __name__ == "__main__":
     main()
