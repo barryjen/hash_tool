@@ -8,7 +8,7 @@ API_EMAIL = "barryjen@acceleratedschoolsop.org"
 cache = {}
 
 
-def load_dictionary_cache(algorithm: str, dict_file="rockyou.txt"):
+def load_dictionary_cache(algorithm: str, dict_file="wordlists/rockyou.txt"):
     global cache
     if algorithm in cache:
         return cache[algorithm]
