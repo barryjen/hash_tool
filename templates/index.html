@@ -4,17 +4,19 @@
   <meta charset="UTF-8" />
   <title>Hash Tool Web UI</title>
   <style>
-    body { font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; }
-    form { margin-bottom: 20px; }
+    body { font-family: Arial, sans-serif; max-width: 700px; margin: auto; padding: 20px; }
+    form { margin-bottom: 30px; padding: 15px; border: 1px solid #ccc; }
     label { display: block; margin-top: 10px; }
-    input[type=text], select, textarea { width: 100%; padding: 8px; margin-top: 5px; }
+    input[type=text], select, textarea {
+      width: 100%; padding: 8px; margin-top: 5px; box-sizing: border-box;
+    }
     button { margin-top: 10px; padding: 10px 15px; }
     .result { background: #e0ffe0; padding: 10px; margin-top: 10px; border: 1px solid #6c6; }
     .error { background: #ffe0e0; padding: 10px; margin-top: 10px; border: 1px solid #c66; }
   </style>
 </head>
 <body>
-  <h1>Hash Tool Web UI</h1>
+  <h1>🔐 Hash Tool Web Interface</h1>
 
   {% if error %}
     <div class="error">{{ error }}</div>
@@ -80,5 +82,31 @@
       <div class="result">{{ lookup_result }}</div>
     {% endif %}
   </form>
+
+  <!-- Brute-force Hash -->
+  <form method="post" action="/brute_force">
+    <h2>Brute-force Hash</h2>
+    <label for="bf_hash">Hash to brute-force:</label>
+    <input type="text" name="bf_hash" id="bf_hash" required />
+
+    <label for="bf_algorithm">Algorithm:</label>
+    <select name="bf_algorithm" id="bf_algorithm" required>
+      <option value="">--Choose--</option>
+      <option value="md5">MD5</option>
+      <option value="sha1">SHA-1</option>
+      <option value="sha256">SHA-256</option>
+      <option value="sha512">SHA-512</option>
+    </select>
+
+    <label for="bf_maxlen">Max Password Length:</label>
+    <input type="text" name="bf_maxlen" id="bf_maxlen" placeholder="e.g. 3" required />
+
+    <button type="submit">Brute-force</button>
+
+    {% if action == "brute_force" and brute_result %}
+      <div class="result">{{ brute_result }}</div>
+    {% endif %}
+  </form>
+
 </body>
 </html>
